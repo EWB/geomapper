@@ -9,8 +9,6 @@ stylesheets[all][] = css/layout.css
 stylesheets[all][] = css/style.css
 stylesheets[all][] = css/colors.css
 stylesheets[print][] = css/print.css
-stylesheets[all][] = Control.FullScreen.css
-scripts[] = Control.FullScreen.js
 
 regions[header] = Header
 regions[help] = Help
@@ -36,8 +34,8 @@ regions[footer] = Footer
 settings[shortcut_module_link] = 0
 
 
-; Information added by Drupal.org packaging script on 2014-01-03
-version = "7.25"
+; Information added by Drupal.org packaging script on 2014-01-15
+version = "7.26"
 project = "drupal"
-datestamp = "1388709506"
+datestamp = "1389815930"
 
