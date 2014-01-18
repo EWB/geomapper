@@ -247,6 +247,7 @@ function leaflet_process_geofield($items = array()) {
         $geom = geoPHP::load($item['wkt'], 'wkt');
 
         $tmp = $geom->getComponents();
+        $components = array();
         foreach ($tmp as $polygon) {
           $polygon_component = $polygon->getComponents();
           foreach ($polygon_component as $linestring) {
@@ -379,7 +380,9 @@ function leaflet_apply_map_settings(&$map, &$features, $map_settings, $entity_ty
     $entity = !empty($feat['entity']) ? $feat['entity'] : NULL;
     $token_args = array('data' => array($entity_type => $entity), 'options' => array('clear' => TRUE));
     foreach ($token_by_entity as $key) {
-      array_walk_recursive($settings[$key], 'leaflet_token_replace', $token_args);
+      if (isset($settings[$key])) {
+        array_walk_recursive($settings[$key], 'leaflet_token_replace', $token_args);
+      }
     }
 
     if (isset($settings['popup']['show']) && $settings['popup']['show']) {
@@ -425,6 +428,8 @@ function leaflet_apply_map_settings(&$map, &$features, $map_settings, $entity_ty
         $feat['options'] = $options;
       }
     }
+    // Unset the entity here so it does not get returned to the client in JS.
+    unset($feat['entity']);
   }
 }
 
@@ -592,9 +597,12 @@ function leaflet_form_elements($group, $settings, $options = NULL) {
         '#type' => 'textfield',
         '#title' => t('Marker HTML class'),
         '#description' => t('Optional class name for the div used to wrap field output. For multiple classes, separate with a space.'),
-        '#default_value' => isset($settings[$group]['htmlClass']) ? $settings[$group]['htmlClass'] : '',
+        '#default_value' => isset($settings[$group]['htmlClass']) ? $settings[$group]['htmlClass'] : 'leaflet_map_icon',
         '#states' => array(
           'visible' => array(
+            ':input[name="' . $options['path'] . '[icon][iconType]"]' => array('value' => 'html'),
+          ),
+          'required' => array(
             ':input[name="' . $options['path'] . '[icon][iconType]"]' => array('value' => 'html'),
           ),
         ),
