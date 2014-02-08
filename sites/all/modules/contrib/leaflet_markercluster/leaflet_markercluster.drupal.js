@@ -5,13 +5,15 @@
 
 (function ($) {
 
+  var LEAFLET_MARKERCLUSTER_EXCLUDE_FROM_CLUSTER = 0x01;
+
   Drupal.behaviors.leaflet = { // overrides same behavior in leaflet/leaflet.drupal.js
     attach: function(context, settings) {
 
       $(settings.leaflet).each(function () {
         // bail if the map already exists
         var container = L.DomUtil.get(this.mapId);
-        if (container._leaflet) {
+        if (!container || container._leaflet) {
           return false;
         }
 
@@ -23,6 +25,7 @@
 
         // instantiate our new map
         var lMap = new L.Map(this.mapId, settings);
+        lMap.bounds = [];
 
         // add map layers
         var layers = {}, overlays = {};
@@ -83,6 +86,7 @@
         // add features
         for (i = 0; i < this.features.length; i++) {
           var feature = this.features[i];
+          var cluster = (feature.type == 'point') && (!feature.flags || !(feature.flags & LEAFLET_MARKERCLUSTER_EXCLUDE_FROM_CLUSTER));
           var lFeature;
 
           // dealing with a layer group
@@ -90,7 +94,7 @@
             var lGroup = new L.LayerGroup();
             for (var groupKey in feature.features) {
               var groupFeature = feature.features[groupKey];
-              lFeature = leaflet_create_feature(groupFeature);
+              lFeature = leaflet_create_feature(groupFeature, lMap);
               if (groupFeature.popup) {
                 lFeature.bindPopup(groupFeature.popup);
               }
@@ -100,16 +104,16 @@
             // add the group to the layer switcher
             overlays[feature.label] = lGroup;
 
-            if (cluster_layer) {
+            if (cluster_layer && cluster)  {
               cluster_layer.addLayer(lGroup);
             } else {
               lMap.addLayer(lGroup);
             }
           }
           else {
-            lFeature = leaflet_create_feature(feature);
+            lFeature = leaflet_create_feature(feature, lMap);
             // @RdB add to cluster layer if one is defined, else to map
-            if (cluster_layer) {
+            if (cluster_layer && cluster) {
               cluster_layer.addLayer(lFeature);
             }
             else {
@@ -119,6 +123,9 @@
               lFeature.bindPopup(feature.popup, {autoPanPadding: L.point(25,25)});
             }
           }
+
+          // Allow others to do something with the feature that was just added to the map
+          $(document).trigger('leaflet.feature', [lFeature, feature]);
         }
 
         // add layer switcher
@@ -131,7 +138,7 @@
           lMap.setView(new L.LatLng(this.map.center.lat, this.map.center.lon), this.map.settings.zoom);
         }
         // if we have provided a zoom level, then use it after fitting bounds
-        else if (this.map.settings.zoom) {
+        else if (this.map.settings.zoom && this.features.length > 0) {
           Drupal.leaflet.fitbounds(lMap);
           lMap.setZoom(this.map.settings.zoom);
         }
@@ -139,6 +146,10 @@
         else {
           Drupal.leaflet.fitbounds(lMap);
         }
+        // associate the center and zoom level proprerties to the built lMap.
+        // useful for post-interaction with it
+        lMap.center = lMap.getCenter();
+        lMap.zoom = lMap.getZoom();
 
         // add attribution
         if (this.map.settings.attributionControl && this.map.attribution) {
@@ -148,29 +159,39 @@
 
         // add the leaflet map to our settings object to make it accessible
         this.lMap = lMap;
+
+        // allow other modules to get access to the map object using jQuery's trigger method
+        $(document).trigger('leaflet.map', [this.map, lMap]);
+
         // Destroy features so that an AJAX reload does not get parts of the old set.
         // Required when the View has "Use AJAX" set to Yes.
         this.features = null;
       });
 
-      function leaflet_create_feature(feature) {
+      function leaflet_create_feature(feature, lMap) {
         var lFeature;
         switch (feature.type) {
           case 'point':
-            lFeature = Drupal.leaflet.create_point(feature);
+            lFeature = Drupal.leaflet.create_point(feature, lMap);
             break;
           case 'linestring':
-            lFeature = Drupal.leaflet.create_linestring(feature);
+            lFeature = Drupal.leaflet.create_linestring(feature, lMap);
             break;
           case 'polygon':
-            lFeature = Drupal.leaflet.create_polygon(feature);
+            lFeature = Drupal.leaflet.create_polygon(feature, lMap);
             break;
           case 'multipolygon':
           case 'multipolyline':
-            lFeature = Drupal.leaflet.create_multipoly(feature);
+            lFeature = Drupal.leaflet.create_multipoly(feature, lMap);
             break;
           case 'json':
-            lFeature = Drupal.leaflet.create_json(feature.json)
+            lFeature = Drupal.leaflet.create_json(feature.json, lMap);
+            break;
+          case 'popup':
+            lFeature = Drupal.leaflet.create_popup(feature, lMap);
+            break;
+          case 'circle':
+            lFeature = Drupal.leaflet.create_circle(feature, lMap);
             break;
         }
 

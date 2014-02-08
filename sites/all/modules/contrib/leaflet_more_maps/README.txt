@@ -5,11 +5,11 @@ Before you enable the Leaflet More Maps module, you need to download and enable
 the Leaflet module and the Libraries module.
 
 Then download the Leaflet javascript library from
-http://leaflet.cloudmade.com/download.html.
+http://leafletjs.com/download.html.
 
-This zip file contains a directory named 'dist'. Drop this directory in
-sites/all/libraries/leaflet, so that the path to the essential javascript file
-becomes sites/all/libraries/leaflet/dist/leaflet.js
+Drop the unzipped foler in sites/all/libraries and rename it to leaflet, so that
+the path to the essential javascript file becomes:
+sites/all/libraries/leaflet/leaflet.js
 
 If all's ok, you won't see any errors in the Status Report admin/reports/status.
 After this all you have to do is enable Leaflet More Maps to enhance your

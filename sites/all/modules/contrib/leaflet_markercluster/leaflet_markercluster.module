@@ -10,13 +10,14 @@ function leaflet_markercluster_library() {
   }
   $libraries['leaflet_markercluster'] = array(
     'title' => 'Leaflet Markercluster',
-    'version' => 0, // we don't have a version
+    'version' => 0.4,
     'js' => array(
       array(
         'type' => 'file',
         'data' => "$path/leaflet.markercluster.js",
         'group' => JS_LIBRARY,
         'preprocess' => FALSE,
+        'weight' => 1,
       ),
     ),
     'css' => array(
@@ -28,17 +29,26 @@ function leaflet_markercluster_library() {
         'type' => 'file',
         'media' => 'screen',
       ),
+      "$path/MarkerCluster.Default.ie.css" => array(
+        'type' => 'file',
+        'media' => 'screen',
+        'every_page' => TRUE,
+        'browsers' => array('IE' => 'lte IE 8', '!IE' => FALSE, 'preprocess' => FALSE),
+      ),
     ),
   );
 
   return $libraries;
 }
 
-function leaflet_markercluster_preprocess_leaflet_map(&$vars) {
+/**
+ * Implements hook_leaflet_map_prebuild_alter().
+ */
+function leaflet_markercluster_leaflet_map_prebuild_alter(&$vars = NULL) {
   drupal_add_library('leaflet_markercluster', 'leaflet_markercluster');
-  drupal_add_js(drupal_get_path('module', 'leaflet_markercluster') . '/leaflet_markercluster.drupal.js');
+  $options = array('type' => 'file', 'weight' => 1);
+  drupal_add_js(drupal_get_path('module', 'leaflet_markercluster') . '/leaflet_markercluster.drupal.js', $options);
 }
-
 
 /**
  * Implements hook_requirements().

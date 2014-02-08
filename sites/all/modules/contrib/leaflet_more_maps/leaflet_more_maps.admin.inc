@@ -19,7 +19,7 @@ function leaflet_more_maps_admin_configure() {
   );
   $form['keys']['skobbler_key'] = array(
     '#type' => 'textfield',
-    '#title' => t('<a href="@url" target="skobbler">Skobbler</a> API key', array('@url' => 'http://www.skobbler.com')),
+    '#title' => t('<a href="@url" target="skobbler">Skobbler</a> API key', array('@url' => 'http://maps.skobbler.com')),
     '#default_value' => $skobbler_key,
     '#description' => t('<a href="@url" target="skobbler">Generate Skobbler API key</a>. Make sure to add your Skobbler referrers when you generate your API key. If you are on a subdomain, make sure you add the root domain as well.', array('@url' => 'http://developer.skobbler.com/web-tiles/api-key')),
   );

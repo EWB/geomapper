@@ -51,7 +51,7 @@ function leaflet_more_maps_leaflet_map_info() {
 /**
  * Preprocess function for leaflet_more_maps.
  */
-function leaflet_more_maps_preprocess_leaflet_map(&$variables) {
+function leaflet_more_maps_leaflet_map_prebuild_alter(&$variables = NULL) {
   $path = drupal_get_path('module', 'leaflet_more_maps');
   // Increase weight so we're included after 'leaflet.drupal.js'
   $options = array('type' => 'file', 'weight' => 1);
@@ -193,7 +193,7 @@ function _leaflet_more_maps_assemble_default_map_info(&$map_info, $default_setti
     'layers' => array(
       'layer' => array(
         'type' => 'google',
-        'urlTemplate' => $prot . 'khm{s}.googleapis.com/kh?v=125&x={x}&y={y}&z={z}',
+        'urlTemplate' => $prot . 'khm{s}.googleapis.com/kh?v=142&x={x}&y={y}&z={z}',
         'options' => array(
           'attribution' => $attr_google,
           // 'detectRetina' => TRUE,
@@ -219,7 +219,7 @@ function _leaflet_more_maps_assemble_default_map_info(&$map_info, $default_setti
     'layers' => array(
       'layer' => array(
         'type' => 'google',
-        'urlTemplate' => $prot . 'khm{s}.googleapis.com/kh?v=125&x={x}&y={y}&z={z}',
+        'urlTemplate' => $prot . 'khm{s}.googleapis.com/kh?v=142&x={x}&y={y}&z={z}',
         'options' => array(
           'attribution' => $attr_google,
           // 'detectRetina' => TRUE,
@@ -412,7 +412,7 @@ function _leaflet_more_maps_assemble_default_map_info(&$map_info, $default_setti
   );
 
   //Skobbler
-  $attr_skobbler = '<a target="attr" href="http://skobbler.com">Skobbler</a>';
+  $attr_skobbler = '<a target="attr" href="http://maps.skobbler.com">Skobbler</a>';
   $skobbler_key = variable_get('leaflet_more_maps_skobbler_key', '');
   $map_info['skobbler'] = array(
     'label' => 'Skobbler maps (zoom 0..18)',
