@@ -4,10 +4,10 @@
     attach:function (context, settings) {
 
       $(settings.leaflet).each(function () {
-        // skip to the next iteration if the map already exists
+        // bail if the map already exists
         var container = L.DomUtil.get(this.mapId);
         if (!container || container._leaflet) {
-          return;
+          return false;
         }
 
         // load a settings object with all of our map settings
@@ -29,21 +29,12 @@
 
           layers[key] = map_layer;
 
-          // keep the reference of first layer
-          // as written in the doc (http://leafletjs.com/examples/layers-control.html)
-          // "Also note that when using multiple base layers, only one of them should be added to the map at instantiation, but all of them should be present in the base layers object when creating the layers control.""
-          if (i == 0) {
-            // add first layer to the map
+          // add the  layer to the map
+          if (i >= 0) {
             lMap.addLayer(map_layer);
           }
           i++;
         }
-
-        // keep an instance of leaflet layers
-        this.map.lLayers = layers;
-
-        // keep an instance of map_id
-        this.map.map_id = this.mapId;
 
         // add features
         for (i = 0; i < this.features.length; i++) {
