@@ -52,7 +52,8 @@ class ip_geoloc_plugin_style_openlayers extends views_plugin_style {
     );
 
     $form_state['renderer'] = 'openlayers';
-    ip_geoloc_plugin_style_bulk_of_form($this, $form, $form_state);
+    $weight = 10;
+    ip_geoloc_plugin_style_bulk_of_form($this, $weight, $form, $form_state);
     // OpenLayers has "Hide empty map for Views" for this.
     unset($form['empty_map_center']);
 
@@ -85,6 +86,8 @@ class ip_geoloc_plugin_style_openlayers extends views_plugin_style {
    */
   public function render() {
 
+    $render_start = microtime(TRUE);
+
     // This somewhat mimics function openlayers_render_map_data() and class
     // openlayers_views_style_map, function render()
     $map = openlayers_map_load(isset($this->options['map']) ? $this->options['map'] : variable_get('openlayers_default_map', 'default'));
@@ -106,6 +109,9 @@ class ip_geoloc_plugin_style_openlayers extends views_plugin_style {
 
       $center_option = !isset($this->options['center_option']) ? IP_GEOLOC_MAP_CENTER_ON_FIRST_LOCATION : $this->options['center_option'];
       $visitor_location = ip_geoloc_get_visitor_location();
+      if (!isset($visitor_location['longitude'])) {
+        $visitor_location = db_query('SELECT * FROM {ip_geoloc} WHERE ip_address = :ip_address', array(':ip_address' => ip_address()))->fetchAssoc();
+      }
       if ($center_option == IP_GEOLOC_MAP_CENTER_ON_VISITOR && $center_set = isset($visitor_location['longitude'])) {
         $longitude = $visitor_location['longitude'];
         $latitude  = $visitor_location['latitude'];
@@ -192,6 +198,8 @@ class ip_geoloc_plugin_style_openlayers extends views_plugin_style {
     else {
       $output = implode('<br/>', $map['errors']);
     }
+    ip_geoloc_debug(t('-- Openlayers map preparation time: %sec s', array('%sec' => number_format(microtime(TRUE) - $render_start, 2))));
+
     return $output;
   }
 }

@@ -1,0 +1,3 @@
+name = Leaflet More Maps - Scroll Zoom Off
+description = A little module to turn off the zoom with scroll wheel on Leaflet More Maps
+core = 7.x

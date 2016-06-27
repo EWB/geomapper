@@ -11,17 +11,28 @@
     latLng = latLng.wrap();
     lMap.bounds.push(latLng);
 
+    var options = { title: marker.tooltip, riseOnHover: true };
+    if (marker.zIndex) {
+      options.zIndexOffset = marker.zIndex;
+    }
+    if (marker.regions) {
+      options.regions = marker.regions;
+    }
+    if (marker.aggregationValue) {
+      options.aggregationValue = marker.aggregationValue;
+    }
+
     if (!marker.tag) {
       // Handle cases where no tag is required and icon is default or none.
       if (marker.icon === false) {
         // No marker. Need to create an icon "stub" or we'll have no map at all!
-        var stub = new L.Icon({iconUrl: '//'});
-        return new L.Marker(latLng, {icon: stub, title: marker.tooltip});
+        options.icon = new L.Icon({iconUrl: '//'});
+        return new L.Marker(latLng, options);
       }
       if (!marker.icon) {
         // Marker with default img, without tag.
         // Note: marker.specialChar cannot be handled in this case and is ignored.
-        return new L.Marker(latLng, {title: marker.tooltip});
+        return new L.Marker(latLng, options);
       }
     }
     if (marker.icon === false) {
@@ -29,13 +40,14 @@
       var divIcon = new L.DivIcon({html: marker.tag, className: marker.cssClass});
       // Prevent div style tag being set, so that upper left corner becomes anchor.
       divIcon.options.iconSize = null;
-      return new L.Marker(latLng, {icon: divIcon, title: marker.tooltip});
+      options.icon = divIcon;
+      return new L.Marker(latLng, options);
     }
 
     if (marker.tag && !marker.icon) {
       // Use default img, custom tag the marker.
-      var tagged_icon = new L.Icon.Tagged(marker.tag, marker.specialChar, {className: marker.cssClass, specialCharClass: marker.special_char_class});
-      return new L.Marker(latLng, {icon: tagged_icon, title: marker.tooltip});
+      options.icon = new L.Icon.Tagged(marker.tag, marker.specialChar, {className: marker.cssClass, specialCharClass: marker.special_char_class});
+      return new L.Marker(latLng, options);
     }
     // Custom img and custom tag or specialChar.
     var icon = marker.tag || marker.specialChar || marker.specialCharClass
@@ -61,7 +73,8 @@
     if (marker.icon.shadowAnchor) {
       icon.options.shadowAnchor = new L.Point(parseInt(marker.icon.shadowAnchor.x), parseInt(marker.icon.shadowAnchor.y));
     }
-    return new L.Marker(latLng, {icon: icon, title: marker.tooltip});
+    options.icon = icon;
+    return new L.Marker(latLng, options);
   };
 
 })(jQuery);
@@ -96,10 +109,9 @@ L.Icon.Tagged = L.Icon.extend({
     if (this._specialChar || this.options.specialCharClass) {
       // Convention seems to be to use the i element.
       // Other elements like div and span work also, just make sure that
-      // display:block is set implicitly or explictly.
+      // display:block is set implicitly or explicitly.
       var specialChar = document.createElement('i');
       specialChar.innerHTML = this._specialChar ? this._specialChar.trim() : '';
-      // Note: for Font Awesome we must have a class starting with "icon-"
       if (this.options.specialCharClass) {
         specialChar.setAttribute('class', this.options.specialCharClass);
       }

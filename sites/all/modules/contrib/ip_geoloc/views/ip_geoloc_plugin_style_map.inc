@@ -40,6 +40,7 @@ class ip_geoloc_plugin_style_map extends views_plugin_style {
     $options['map_options'] = array('default' => '');
     $options['map_div_style'] = array('default' => '');
     $options['empty_map_center'] = array('default' => '');
+    $options['open_balloons'] = array('default' => '');
     return $options;
   }
 
@@ -50,29 +51,35 @@ class ip_geoloc_plugin_style_map extends views_plugin_style {
     parent::options_form($form, $form_state);
 
     $form_state['renderer'] = 'google';
-    ip_geoloc_plugin_style_bulk_of_form($this, $form, $form_state);
+    $weight = 10;
+    ip_geoloc_plugin_style_bulk_of_form($this, $weight, $form, $form_state);
+
+    unset($form['center_option']['#options'][IP_GEOLOC_MAP_CENTER_OF_LOCATIONS]);
+    $form['center_option']['#options'][IP_GEOLOC_MAP_CENTER_ON_VISITOR_AND_LOCATIONS] =  t('Auto-box and zoom to fit all locations, including the visitor location.');
+    $form['center_option']['#options'][IP_GEOLOC_MAP_CENTER_OF_LOCATIONS] =  t('Auto-box and zoom to fit all locations, except for the visitor location, but display it if requested below.');
 
     $form['map_options'] = array(
       '#title' => t('Map options'),
-      '#type' => 'textfield',
-      '#size' => 127,
-      '#maxlength' => 511,
+      '#type' => 'textarea',
+      '#size' => 3,
       '#default_value' => $this->options['map_options'],
-      '#description' => t("If left blank, the default %default_options will produce a world map zoomed in to level 2. A list of map options can be found <a href='!google_map_docs'>here</a>. Remember to separate options with comma's, not semi-colons, and make sure your (double) quotes match.<br/>These options apply a grey hue to all roads:<br/>%example_options", array(
+      '#description' => t("If left blank, the default %default_options will produce a world map zoomed in to level 2 (subject to the centering option selected). A list of map options can be found <a href='!google_map_docs'>here</a>. Remember to separate options with comma's, not semi-colons, and make sure your (double) quotes match.<br/>These options apply a grey hue to all roads and set the marker balloon separator as well:<br/>%example_options", array(
         '%default_options' => IP_GEOLOC_RECENT_VISITORS_MAP_OPTIONS,
         '%example_options' => IP_GEOLOC_EXAMPLE_MAP_OPTIONS,
         '!google_map_docs' => IP_GEOLOC_DOC_GOOGLE_MAP_OPTIONS)),
       '#weight' => 35,
     );
 
+    $desc1 = t('If left blank, the default %default_style will result in a map of 300 pixels high, with a width bounded by the element that contains it. Separate style settings with semi-colons. Do not enter quotes or equal signs.', array(
+      '%default_style' => IP_GEOLOC_MAP_DIV_DEFAULT_STYLE));
+    $desc2 = t('You may also enter <em>&lt;none&gt;</em>. In this case you <em>must</em> set the height through CSS or the map will not show. You can use this selector to target the map: <em>#ip-geoloc-map-of-view-VIEWNAME-DISPLAYNAME</em>');
     $form['map_div_style'] = array(
       '#title' => t('Map style (CSS attributes)'),
       '#type' => 'textfield',
       '#size' => 127,
       '#maxlength' => 511,
       '#default_value' => $this->options['map_div_style'],
-      '#description' => t('If left blank, the default %default_style will result in a map of 300 pixels high, with a width bounded by the element that contains it. Separate style settings with semi-colons. Do not enter quotes or equal signs.',
-        array('%default_style' => IP_GEOLOC_MAP_DIV_DEFAULT_STYLE)),
+      '#description' => "$desc1<br/>$desc2",
       '#weight' => 37,
     );
 
@@ -95,6 +102,15 @@ class ip_geoloc_plugin_style_map extends views_plugin_style {
       '#weight' => 95,
     );
 
+    $form['open_balloons'] = array(
+      '#title' => t('Marker balloons to open on initial display'),
+      '#type' => 'textfield',
+      '#default_value' => $this->options['open_balloons'],
+      '#description' => t("Comma-separated list of numbers of markers that have their info balloons opened upon initial display of the map. <br/>The first marker has number 1. You may use <strong>&lt;@last&gt;</strong> to indicate the last marker among the view results. <br>Note that opening a marker balloon may cause the map to pan.", array(
+        '@last' => t('last')
+      )),
+      '#weight' => 115,
+    );
   }
 
   /**
@@ -112,12 +128,25 @@ class ip_geoloc_plugin_style_map extends views_plugin_style {
     if (!empty($this->view->live_preview)) {
       return t('The preview function is incompatible with Google Maps so cannot be used. Please visit the page path or block to view your map.');
     }
+    $render_start = microtime(TRUE);
 
     ip_geoloc_plugin_style_render_fields($this);
     $locations = ip_geoloc_plugin_style_extract_locations($this);
+    
+    $open_balloon_nos = array();
+    $t_last = '<' . t('last') . '>';
+    foreach (explode(',', $this->options['open_balloons']) as $no) {
+      $open_balloon_nos[] = (trim($no) == $t_last ? count($locations) - 1 : (int)$no - 1);
+    }
+    foreach ($locations as $key => $location) {
+      $location->open = in_array($key, $open_balloon_nos);
+    }
 
     $map_options = empty($this->options['map_options']) ? IP_GEOLOC_RECENT_VISITORS_MAP_OPTIONS : $this->options['map_options'];
-    $map_div_style = empty($this->options['map_div_style']) ? IP_GEOLOC_MAP_DIV_DEFAULT_STYLE : check_plain($this->options['map_div_style']);
+    $map_div_style = trim($this->options['map_div_style']);
+    $map_div_style = empty($map_div_style)
+      ? IP_GEOLOC_MAP_DIV_DEFAULT_STYLE
+      : ($map_div_style == '<none>' ? ' ' : check_plain($this->options['map_div_style']));
     $marker_color = empty($this->options['default_marker_color']) ? '' : $this->options['default_marker_color'];
 
     if (empty($this->options['visitor_marker'])) {
@@ -150,7 +179,7 @@ class ip_geoloc_plugin_style_map extends views_plugin_style {
 
     if ($visitor_marker || $center_option == IP_GEOLOC_MAP_CENTER_ON_VISITOR) {
       // Perform database IP lookup as backup/replacement for HTML5 location
-      // Visitor may be moving so ignore existing lat/long.
+      // Visitor may be moving so ignore lat/long we have on the db.
       $resample = TRUE;
       // Do not store lat/long and city as it will obliterate the
       // reverse-geocoded one.
@@ -158,6 +187,10 @@ class ip_geoloc_plugin_style_map extends views_plugin_style {
       // We only need lat/long, not full street address.
       $reverse_geocode = FALSE;
       $visitor_location = ip_geoloc_get_location_by_ip(ip_address(), $resample, $store, $reverse_geocode);
+      if (!isset($visitor_location['latitude'])) {
+        // If everything failed use whatever we have on the database.
+        $visitor_location = db_query('SELECT * FROM {ip_geoloc} WHERE ip_address = :ip_address', array(':ip_address' => ip_address()))->fetchAssoc();
+      }
       if (isset($visitor_location['latitude']) && isset($visitor_location['longitude'])) {
         $center_latlng = array($visitor_location['latitude'], $visitor_location['longitude']);
       }
@@ -187,6 +220,8 @@ class ip_geoloc_plugin_style_map extends views_plugin_style {
       'center_latlng' => $center_latlng,
       'visitor_location_gps' => !empty($gps_roles_applicable),
     ));
+    ip_geoloc_debug(t('-- Google map preparation time: %sec s', array('%sec' => number_format(microtime(TRUE) - $render_start, 2))));
+
     return $output;
   }
 
